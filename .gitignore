@@ -13,3 +13,9 @@ results
 
 node_modules
 npm-debug.log
+
+templates_c/*
+!templates_c/README
+
+.sass*
+
