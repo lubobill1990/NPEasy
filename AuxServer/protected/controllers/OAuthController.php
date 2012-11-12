@@ -11,6 +11,10 @@ class OAuthController extends Controller
 
     public function actionGetAuthorizedCode()
     {
+        //if the user is guest, then can not get auth code
+        if (Yii::app()->user->isGuest) {
+            return;
+        }
         //check session_id in cache to get the cached auth_code
         $auth_code = Yii::app()->cache->get('npeasy_aux:session_id_2_auth_code:' . session_id());
 

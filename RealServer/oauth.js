@@ -1,9 +1,10 @@
 /**
- * npeasy
- * - cookie:cookie_value
- * |- connection:connection_value
- * - user:user_id
- * |- cookie:cookie_value
+ * 未登录的用户id默认为0
+ *
+ * npeasy:cookie:<cookie_val>:user_info_raw={"id":"1","email":"lubobill1990@163.com"}
+ * npeasy:cookie:<cookie_val>:access_token=jqiowjfasdjvbajsfphasdfweqwe
+ * npeasy:user_id:<user_id_val|0>:node_id:<node_id_val>=set(<cookie_val>+<connection_id>)
+ *
  * @type {*}
  */
 var redis = require('redis'),
