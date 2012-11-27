@@ -20,13 +20,6 @@
                 if ('domain' in option)
                     domain = option.domain;
             },
-            getCookie:function (objName) {//获取指定名称的cookie的值
-                var arrStr = document.cookie.split("; ");
-                for (var i = 0; i < arrStr.length; i++) {
-                    var temp = arrStr[i].split("=");
-                    if (temp[0] == objName) return unescape(temp[1]);
-                }
-            },
             connect:function (dest, callback, timeout_callback) {
                 return $.ajax({
                     //async : false, //使用同步请求
@@ -34,7 +27,7 @@
                     url:domain + ':' + port + '/' + dest+'?connectionId='+connectionId,
                     dataType:'jsonp', //选择返回值类型
                     jsonp:"callback", //规定发送/接收参数，默认为callback
-                    //timeout:30000,
+                    timeout:30000,
                     error:function (jqXHR, textStatus, errorThrown) {
                         if (textStatus == "timeout") {
                             if (typeof timeout_callback == 'function') {
@@ -54,28 +47,41 @@
                 });
             },
 
-//            register:function () {
-//                $.realTime('connect', 'sendPHPSESSID?session_id=' + $.realTime('getCookie', 'PHPSESSID'), function (data) {
-//                    $.realTime('listen');
-//                })
-//            },
             listen:function () {
-                function handler(data) {
-                    $.realTime('listen');
-                    var handlers = event_handlers[data.event];
+                function handleDataObject(data){
+                    var handlers=event_handlers[data.event];
                     if (handlers != undefined && handlers instanceof Array) {
                         for (var i = 0; i < handlers.length; ++i) {
                             handlers[i](data.data);
                         }
                     }
                 }
+                function handler(data) {
+                    if (data instanceof Array){
+                        for(var j in data){
+                            if(data[j].event=='connectionExists'){
+                                return;
+                            }
+                            handleDataObject(data[j]);
+                        }
+                        $.npeasy('listen');
+                    }else{
+                        //如果是已存在connection 则停止listen
+                        if(data.event=='connectionExists'){
+                            return;
+                        }
+                        $.npeasy('listen');
+                        handleDataObject(data);
+                    }
 
-                a = $.realTime('connect', 'listen', handler, function () {
-                    $.realTime('listen');
+                }
+
+                a = $.npeasy('connect', 'listen', handler, function () {
+                    $.npeasy('listen');
                 });
             },
             subscribe:function (channelName) {
-                function handleDataObject(data) {
+                function channelHandleDataObject(data) {
                     if (channel_event_handlers[channelName] !== undefined && channel_event_handlers[channelName][data.event] !== undefined && channel_event_handlers[channelName][data.event] instanceof Array) {
                         var handlers = channel_event_handlers[channelName][data.event];
                         for (var i = 0; i < handlers.length; ++i) {
@@ -86,19 +92,19 @@
 
                 function handler(data) {
 
-                    $.realTime('subscribe', channelName);
+                    $.npeasy('subscribe', channelName);
                     if (data instanceof Array) {
                         for (var i = 0; i < data.length; ++i) {
-                            handleDataObject(data[i]);
+                            channelHandleDataObject(data[i]);
                         }
                     } else {
-                        handleDataObject(data);
+                        channelHandleDataObject(data);
                     }
 
                 }
 
-                $.realTime('connect', 'subscribe/' + channelName, handler, function () {
-                    $.realTime('subscribe', channelName);
+                $.npeasy('connect', 'subscribe/' + channelName, handler, function () {
+                    $.npeasy('subscribe', channelName);
                 })
             },
             register:function (param1, param2, param3) {
@@ -123,10 +129,10 @@
                 }
             },
             sendMsg:function (toUserId, content) {
-                $.realTime('connect', 'chat?touserid=' + toUserId + '&msg=' + content);
+                $.npeasy('connect', 'chat?touserid=' + toUserId + '&msg=' + content);
             },
             getUserList:function (handler) {
-                $.realTime('connect', 'getUserList', handler);
+                $.npeasy('connect', 'getUserList', handler);
             }
         }
         ;
@@ -142,5 +148,13 @@
 
 })(jQuery);
 $(function(){
-    $('.testArea').html("<iframe src='http://npeasy.com:3000/oauth/confirm-identity'></iframe>")
+    $('.testArea').html("<iframe src='http://npeasy.com:3000/oauth/confirm-identity' ></iframe>")
 })
+
+$.npeasy('register','dummy',function(res){
+    console.log(res);
+})
+$.npeasy('register','chat',function(res){
+    console.log(res);
+})
+$.npeasy('listen');

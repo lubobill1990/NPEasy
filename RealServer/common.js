@@ -45,3 +45,4 @@ exports.getTimeoutMSeconds = function getTimeoutMSeconds() {
 exports.composeMd5Id=function composeMd5Id(sessionId,connectionId){
     return crypto.createHash('md5').update(sessionId+''+connectionId).digest("hex");
 }
+exports.dummyMessage={event:'dummy',data:{}}
