@@ -10,14 +10,14 @@ var oauth = require('./oauth');
 var app = express();
 var RedisStore = require('connect-redis')(express);
 var common = require('./common');
-var json2 = require('./json2').JSON;
-var connection=require('./connection'),
-    Connection =connection.Connection,
-    connPool = connection.connectionPool,
-    userPool=connection.userPool;
+var json2 = common.JSON;
+
+var connection = require('./lib/Connection');
+var Connection = connection.Connection;
+var _=common._;
 var midware = require('./middleware');
 
-app.configure(function () {
+app.configure('all',function () {
     app.set('port', process.env.PORT || 3000);
     app.set('views', __dirname + '/views');
     app.set('view engine', 'jade');
@@ -56,28 +56,20 @@ app.all('/oauth/callback', function (req, res) {
     oauth.callback(req, res);
 })
 
-app.all('/listen', midware.establishCometConnectionMiddleWare, function (req, res) {
+app.all('/listen', midware.filterConnection,midware.establishCometConnectionMiddleWare, routes.listen);
+/**
+ * 当浏览器需要重建连接
+ */
+app.all('/refreshConnection',midware.filterConnection,routes.refreshConnection)
 
-})
+app.all('/subscribe',midware.filterConnection,routes.subscribe);
 
-app.all('/broadcast', function (req, res) {
-    var c_p = connPool.getConnections();
-    for (var i in c_p) {
-        if (c_p.hasOwnProperty(i)) {//对于每个session的所有连接
-            for (var j in c_p[i]) {
-                c_p[i][j].sendCrossSiteJson({'event':'broadcast',data:{b:123}});
-            }
-        }
-    }
-    res.send('adf');
-});
-app.all('/chat',function(req,res){
-    var userId=req.param('userId');
-    var userConnection=_.map(userPool.getUserConnectionPool(userId).getConnections(),function(val,key){return val;});
-    //console.log(userConnection)
-    connection.sendCrossSiteJson(userConnection,{event:'chat',data:"hello"});
-    res.send('success');
-})
+app.all('/unsubscribe',midware.filterConnection,routes.unsubscribe);
+
+app.all('/broadcast', midware.checkSenderPermission,routes.broadcast);
+
+app.all('/chat', midware.checkSenderPermission,routes.chat);
+
 http.createServer(app).listen(app.get('port'), function () {
     console.log("Express server listening on port " + app.get('port'));
 });

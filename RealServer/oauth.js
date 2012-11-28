@@ -7,15 +7,17 @@
  *
  * @type {*}
  */
-_ = require('underscore');
-var redis = require('redis'),
-    redis_client = redis.createClient();
-var http = require('http');
-var json2 = require('./json2').JSON;
-var connection = require('./connection'),
-    userPool = connection.userPool,
-    connPool = connection.connectionPool;
 var common = require('./common');
+var redis_client = common.redisClient;
+var json2 = common.JSON;
+var _ = common._;
+
+var http = require('http');
+var connection = require('./lib/Connection');
+var connPool = require('./lib/ConnectionPool').connectionPool;
+var userPool=require('./lib/UserPool').userPool;
+var Connection=connection.Connection;
+var UserConnections=require('./lib/UserConnections').UserConnections;
 
 exports.getUserId = function (req, res, callback) {
     var redis_prefix = 'npeasy:cookie:' + req.cookies['npeasy.sid'];

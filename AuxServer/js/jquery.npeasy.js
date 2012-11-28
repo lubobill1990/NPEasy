@@ -17,23 +17,26 @@
     var event_handlers = {};
     var channel_event_handlers = {};
     var connectionId = Math.random();
-    var listenConnectionChecker=false;
-    var listenLastResponseTimestamp= new Date()*1;
-    var listenerNumber=0;//listen的个数
-    function ListenerCriticalArea(){
-        this.listenerNumber=0;
+    var listenConnectionChecker = false;
+    var listenLastResponseTimestamp = new Date() * 1;
+    var listenerNumber = 0;//listen的个数
+    function ListenerCriticalArea() {
+        this.listenerNumber = 0;
     }
-    ListenerCriticalArea.prototype.get=function(){
-        if(this.listenerNumber>=1){
+
+    ListenerCriticalArea.prototype.get = function () {
+        if (this.listenerNumber >= 1) {
             return false;
-        }else{
+        } else {
             return true;
         }
     }
-    ListenerCriticalArea.prototype.release=function(){
-       this.listenerNumber--;
+    ListenerCriticalArea.prototype.release = function () {
+        if (this.listenerNumber >= 1) {
+            this.listenerNumber=0;
+        }
     }
-    var listenerCriticalArea=new ListenerCriticalArea();
+    var listenerCriticalArea = new ListenerCriticalArea();
     var class_methods = {
             getTimestamp:function () {
                 return new Date() * 1;
@@ -54,7 +57,7 @@
                     dataType:'jsonp', //选择返回值类型
                     jsonp:"callback", //规定发送/接收参数，默认为callback
                     timeout:300000,
-                    error: function(XHR, textStatus, errorThrown){
+                    error:function (XHR, textStatus, errorThrown) {
 
                     },
                     success:callback
@@ -64,7 +67,7 @@
             },
 
             listen:function () {
-                if(!listenerCriticalArea.get()){
+                if (!listenerCriticalArea.get()) {
                     return;
                 }
                 function handleDataObject(data) {
@@ -91,9 +94,10 @@
                     }
 
                 }
+
                 //保证只有一个interval被设置
-                if(!listenConnectionChecker){
-                    listenConnectionChecker=true;
+                if (!listenConnectionChecker) {
+                    listenConnectionChecker = true;
                     setInterval(function () {//如果过了60秒还是没有响应，则重新连接
                         if ($.npeasy('getTimestamp') - listenLastResponseTimestamp > 60000) {
                             listenerCriticalArea.release();
