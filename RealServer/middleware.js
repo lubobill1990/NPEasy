@@ -36,7 +36,7 @@ exports.establishCometConnectionMiddleWare=function establishCometConnectionMidd
                 var user_info=json2.parse(user_info_raw);
                 req.userId=user_info.id;
             }catch(ex){
-                console.log(ex.toString());
+                //console.log(ex.toString());
             }
         }
         try {

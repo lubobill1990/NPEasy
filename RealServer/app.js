@@ -74,7 +74,7 @@ app.all('/broadcast', function (req, res) {
 app.all('/chat',function(req,res){
     var userId=req.param('userId');
     var userConnection=_.map(userPool.getUserConnectionPool(userId).getConnections(),function(val,key){return val;});
-    console.log(userConnection)
+    //console.log(userConnection)
     connection.sendCrossSiteJson(userConnection,{event:'chat',data:"hello"});
     res.send('success');
 })

@@ -19,7 +19,9 @@
 </div>
 {include file='layouts/footer.tpl'}
 <div class="testArea"></div>
+
+<script type="text/javascript" src='//npeasy.com:13050/js/jquery-1.8.2.min.js'></script>
+<iframe id="comet" src="//npeasy.com:13050/html/comet.html" style="display: none;"></iframe>
 </body>
-<script type="text/javascript" src='http://npeasy.com:3000/public/javascripts/jquery-1.8.2.min.js'></script>
-<script type="text/javascript" src='http://npeasy.com:3000/public/javascripts/jquery.npeasy.js'></script>
+
 </html>

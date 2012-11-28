@@ -34,11 +34,11 @@ exports.postSecret="5199DED1ECBBF664AD4376306FD45F19";
 exports.getUnixTimestamp = function getUnixTimestamp() {
     return new Date() * 1;
 };
-var requestTimeout = 30000;
+var requestTimeout = 5000;
 //generate an id of current node
 var random_string=(""+Math.random());
 exports.nodeId=random_string.slice(2,random_string.length-1);
-
+exports.nodeId=1
 exports.getTimeoutMSeconds = function getTimeoutMSeconds() {
     return requestTimeout;
 };
