@@ -19,7 +19,11 @@
     var connectionId = Math.random();
     var listenConnectionChecker = false;
     var listenLastResponseTimestamp = new Date() * 1;
-    var listenerNumber = 0;//listen的个数
+
+    /**
+     * 限制在同一时间内只有一个Listener
+     * @constructor
+     */
     function ListenerCriticalArea() {
         this.listenerNumber = 0;
     }

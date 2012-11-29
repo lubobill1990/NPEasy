@@ -76,7 +76,7 @@ Connection.prototype.sendCrossSiteJson = function (json) {
         try {
             this.response.jsonpCallback(json); //response.jsonpCallback方法是在连接初始化时候注册到response的方法
         } catch (ex) {
-            console.log('jsonp callback response exception');
+            console.log(ex.toString()+'jsonp callback response exception');
         }
         this.clearDataBuffer();
         this.alive = false;

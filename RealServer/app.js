@@ -17,6 +17,8 @@ var Connection = connection.Connection;
 var _=common._;
 var midware = require('./middleware');
 
+var listenerRoutes=require('./routes/listener');
+var senderRoutes=require('./routes/sender');
 app.configure('all',function () {
     app.set('port', process.env.PORT || 3000);
     app.set('views', __dirname + '/views');
@@ -42,6 +44,7 @@ app.configure('development', function () {
 });
 
 app.get('/', routes.index);
+app.get('/test',midware.checkSenderPermission, routes.chat);
 
 app.all('/user/id', function (req, res) {
     oauth.getUserId(req, res, function (uid) {
@@ -55,20 +58,19 @@ app.all('/oauth/confirm-identity', function (req, res) {
 app.all('/oauth/callback', function (req, res) {
     oauth.callback(req, res);
 })
-
-app.all('/listen', midware.filterConnection,midware.establishCometConnectionMiddleWare, routes.listen);
+app.all('/listen', midware.filterConnection,midware.establishCometConnectionMiddleWare, listenerRoutes.listen);
 /**
  * 当浏览器需要重建连接
  */
-app.all('/refreshConnection',midware.filterConnection,routes.refreshConnection)
+app.all('/refreshConnection',midware.filterConnection,listenerRoutes.refreshConnection);
 
-app.all('/subscribe',midware.filterConnection,routes.subscribe);
+app.all('/subscribe',midware.filterConnection,senderRoutes.subscribe);
 
-app.all('/unsubscribe',midware.filterConnection,routes.unsubscribe);
+app.all('/unsubscribe',midware.filterConnection,senderRoutes.unsubscribe);
 
-app.all('/broadcast', midware.checkSenderPermission,routes.broadcast);
+app.all('/broadcast', midware.checkSenderPermission,senderRoutes.broadcast);
 
-app.all('/chat', midware.checkSenderPermission,routes.chat);
+app.all('/chat', midware.checkSenderPermission,senderRoutes.chat);
 
 http.createServer(app).listen(app.get('port'), function () {
     console.log("Express server listening on port " + app.get('port'));
