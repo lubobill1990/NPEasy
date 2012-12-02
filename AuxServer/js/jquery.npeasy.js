@@ -14,33 +14,12 @@
 (function ($) {
     var port = 3000;
     var domain = 'http://npeasy.com';
-    var event_handlers = {};
-    var channel_event_handlers = {};
+    var event_handlers = {};//处理listen获取事件的handler
     var connectionId = Math.random();
-    var listenConnectionChecker = false;
     var listenLastResponseTimestamp = new Date() * 1;
-
-    /**
-     * 限制在同一时间内只有一个Listener
-     * @constructor
-     */
-    function ListenerCriticalArea() {
-        this.listenerNumber = 0;
-    }
-
-    ListenerCriticalArea.prototype.get = function () {
-        if (this.listenerNumber >= 1) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-    ListenerCriticalArea.prototype.release = function () {
-        if (this.listenerNumber >= 1) {
-            this.listenerNumber=0;
-        }
-    }
-    var listenerCriticalArea = new ListenerCriticalArea();
+    var listenTimeoutHandler;
+    var connectionNumber = 0;
+    var listenerNumber = 0;
     var class_methods = {
             getTimestamp:function () {
                 return new Date() * 1;
@@ -54,6 +33,8 @@
                     domain = option.domain;
             },
             connect:function (dest, callback) {
+                connectionNumber++;
+                console.log(connectionNumber)
                 var request = $.ajax({
                     //async : false, //使用同步请求
                     type:'GET',
@@ -64,17 +45,23 @@
                     error:function (XHR, textStatus, errorThrown) {
 
                     },
-                    success:callback
+                    success:function (data) {
+                        connectionNumber--;
+                        if(callback!=undefined&&typeof(callback)=='function' ){
+                            callback(data);
+                        }
+                    }
                 });
 
                 return request;
             },
-
-            listen:function () {
-                if (!listenerCriticalArea.get()) {
+            listen:function () {//每次建立连接时，设置一个超时处理函数，如果到了一定的时间没有响应，则重新建立连接
+                if (listenerNumber >= 1) {
                     return;
                 }
-                function handleDataObject(data) {
+                listenerNumber++;
+
+                function handleDataObject(data) {//事件数据处理函数
                     var handlers = event_handlers[data.event];
                     if (handlers != undefined && handlers instanceof Array) {
                         for (var i = 0; i < handlers.length; ++i) {
@@ -84,8 +71,12 @@
                 }
 
                 function handler(data) {
+                    // clearTimeout(listenTimeoutHandler);
+                    listenerNumber = 0;
+                    if (data.event == 'connectionExists'||data.event=='refreshConnection') {
+                        return;
+                    }
                     listenLastResponseTimestamp = $.npeasy('getTimestamp');
-                    listenerCriticalArea.release();
                     //重新建立连接
                     $.npeasy('listen');
                     //刷新时间戳
@@ -99,47 +90,18 @@
 
                 }
 
-                //保证只有一个interval被设置
-                if (!listenConnectionChecker) {
-                    listenConnectionChecker = true;
-                    setInterval(function () {//如果过了60秒还是没有响应，则重新连接
-                        if ($.npeasy('getTimestamp') - listenLastResponseTimestamp > 60000) {
-                            listenerCriticalArea.release();
-                            $.npeasy('listen');
-                        }
-                    }, 31000);
-                }
-
+                //超出100秒后重连
+                listenTimeoutHandler=setTimeout(function(){
+                    clearTimeout(listenTimeoutHandler);
+                    $.npeasy('connect','refreshConnection',function(data){
+                        listenerNumber=0;
+                        $.npeasy('listen');
+                    });
+                },5000)
 
                 $.npeasy('connect', 'listen', handler);
             },
-            subscribe:function (channelName) {
-                function channelHandleDataObject(data) {
-                    if (channel_event_handlers[channelName] !== undefined && channel_event_handlers[channelName][data.event] !== undefined && channel_event_handlers[channelName][data.event] instanceof Array) {
-                        var handlers = channel_event_handlers[channelName][data.event];
-                        for (var i = 0; i < handlers.length; ++i) {
-                            handlers[i](data.data);
-                        }
-                    }
-                }
 
-                function handler(data) {
-
-                    $.npeasy('subscribe', channelName);
-                    if (data instanceof Array) {
-                        for (var i = 0; i < data.length; ++i) {
-                            channelHandleDataObject(data[i]);
-                        }
-                    } else {
-                        channelHandleDataObject(data);
-                    }
-
-                }
-
-                $.npeasy('connect', 'subscribe/' + channelName, handler, function () {
-                    $.npeasy('subscribe', channelName);
-                })
-            },
             register:function (param1, param2, param3) {
                 if (arguments.length == 2) {
                     var event_name = param1,
@@ -148,17 +110,6 @@
                         event_handlers[event_name] = [];
                     }
                     event_handlers[event_name].push(handler);
-                } else if (arguments.length == 3) {
-                    var channel_name = param1,
-                        event_name = param2,
-                        handler = param3;
-                    if (channel_event_handlers[channel_name] == undefined) {
-                        channel_event_handlers[channel_name] = {};
-                    }
-                    if (channel_event_handlers[channel_name][event_name] == undefined) {
-                        channel_event_handlers[channel_name][event_name] = [];
-                    }
-                    channel_event_handlers[channel_name][event_name].push(handler);
                 }
             },
             sendMsg:function (toUserId, content) {

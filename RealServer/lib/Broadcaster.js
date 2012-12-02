@@ -22,10 +22,13 @@ var connectionPool1 = require('./ConnectionPool').connectionPool;
 util.inherits(Broadcaster, events.EventEmitter);
 broadcaster = new Broadcaster();
 broadcaster.addListener('logout', function (userId) {
+    redisClient.srem('npeasy:userList',userId);
     console.log(userId + " logout")
 });
 broadcaster.addListener('online', function (userId) {
     console.log(userId + " online")
+
+    redisClient.sadd('npeasy:userList',userId);
     var c_p = connectionPool1.getConnections();
     for (var i in c_p) {
         if (c_p.hasOwnProperty(i)) {//对于每个session的所有连接

@@ -161,7 +161,7 @@ ConnectionPool.prototype.add = function (conn) {
             if (oldConn.alive) {//并且还活着，这不是正常的事情，所以抛出异常
                 //throw new ConnectionException();
                 //如果还活着，说明前一个还没结束或者前一个意外退出，则将前一个连接覆盖掉
-                oldConn.sendCrossSiteJson(common.dummyMessage);
+                oldConn.sendCrossSiteJson(common.connectionExistMessage);
                 oldConn.copy(conn);
                 return true;
             } else if (oldConn.dataBuffer.length != 0) {//并且是僵尸连接，还有缓存数据

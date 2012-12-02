@@ -64,9 +64,11 @@ app.all('/listen', midware.filterConnection,midware.establishCometConnectionMidd
  */
 app.all('/refreshConnection',midware.filterConnection,listenerRoutes.refreshConnection);
 
-app.all('/subscribe',midware.filterConnection,senderRoutes.subscribe);
+app.all('/subscribe',midware.filterConnection,listenerRoutes.subscribe);
 
-app.all('/unsubscribe',midware.filterConnection,senderRoutes.unsubscribe);
+app.all('/unsubscribe',midware.filterConnection,listenerRoutes.unsubscribe);
+
+app.all('/userList',midware.filterConnection,listenerRoutes.getUserList);
 
 app.all('/broadcast', midware.checkSenderPermission,senderRoutes.broadcast);
 
