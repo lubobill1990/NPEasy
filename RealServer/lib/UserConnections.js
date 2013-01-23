@@ -24,10 +24,10 @@ var _ = require('underscore');
 var events = require('events');
 
 var util = require('util');
-broadcaster=require('./Broadcaster').broadcaster;
-userPool=require('./UserPool').userPool;
-connPoolGlobal=require('./ConnectionPool').connectionPool;
-
+broadcaster = require('./Broadcaster').broadcaster;
+userPool = require('./UserPool').userPool;
+connPoolGlobal = require('./ConnectionPool').connectionPool;
+connection = require('./Connection');
 /**
  * 同一个session下的所有connection一定是该用户的，所以只需存一个session即可
  * @param sessionId
@@ -77,13 +77,21 @@ UserConnections.prototype.getConnections = function () {
         return this.connectionArrayBuffer
     }
     var retVal = [];
-    Object.keys(this.sessions).forEach(function (e) {
-        retVal = retVal.concat(_.map(connPoolGlobal.getSessionConnections(e), function (ele, key) {
-            return ele;
-        }));
+
+    Object.keys(this.sessions).forEach(function (sessionId) {
+        var sessionConnections = connPoolGlobal.getSessionConnections(sessionId);
+        Object.keys(sessionConnections).forEach(function (connectionId) {
+            retVal.push(sessionConnections[connectionId])
+        })
     })
     //console.log(retVal);
     this.bufferExpired = false;
     this.connectionArrayBuffer = retVal;
     return retVal;
+}
+
+UserConnections.prototype.sendCrossSiteJson = function (json) {
+    var connections = this.getConnections();
+    connection.sendCrossSiteJson(connections, json);
+
 }

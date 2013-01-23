@@ -12,6 +12,7 @@
         "connect-redis":"*",
         "xregexp":"*",
         "hiredis":"*",
-        "underscore":"*"
+        "underscore":"*",
+        "socket.io":"*"
     }
 }

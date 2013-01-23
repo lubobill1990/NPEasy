@@ -15,9 +15,9 @@ var _ = common._;
 var http = require('http');
 var connection = require('./lib/Connection');
 var connPool = require('./lib/ConnectionPool').connectionPool;
-var userPool=require('./lib/UserPool').userPool;
-var Connection=connection.Connection;
-var UserConnections=require('./lib/UserConnections').UserConnections;
+var userPool = require('./lib/UserPool').userPool;
+var Connection = connection.Connection;
+var UserConnections = require('./lib/UserConnections').UserConnections;
 
 exports.getUserId = function (req, res, callback) {
     var redis_prefix = 'npeasy:cookie:' + req.cookies['npeasy.sid'];
@@ -39,7 +39,7 @@ exports.getUserId = function (req, res, callback) {
 
 exports.redirectToGetAuthCode = function (req, res) {
     res.writeHead(302, {
-        'Location':'http://npeasy.com:13050/oAuth/getAuthorizedCode?app_key=1111'
+        'Location':'http://wenji.me:13100/oAuth/getAuthorizedCode?app_key=1111'
     });
     res.end();
 }
@@ -53,10 +53,10 @@ exports.redirectToGetAuthCode = function (req, res) {
  */
 exports.callback = function (req, res) {
     var sessionId = req.cookies['npeasy.sid'];
-    var redis_prefix = 'npeasy:cookie:' + req.cookies['npeasy.sid'];
+    var redis_prefix = 'npeasy:cookie:' + sessionId;
     var request_access_token = http.request({
-        host:'npeasy.com',
-        port:13050,
+        host:'wenji.me',
+        port:13100,
         path:'/oAuth/getAccessToken?auth_code=' + req.param('auth_code') + '&app_key=1111&app_secret=1111',
         method:'GET'
     }, function (access_token_response) {
@@ -67,8 +67,8 @@ exports.callback = function (req, res) {
         access_token_response.on('end', function () {//获得access_token
             redis_client.set(redis_prefix + ':access_token', access_token);//access_token存入redis，对应session_id
             var user_info_request = http.request({
-                host:'npeasy.com',
-                port:13050,
+                host:'wenji.me',
+                port:13100,
                 path:'/oAuth/getUserInfo?access_token=' + access_token,
                 method:'GET'
             }, function (user_info_response) {
@@ -84,9 +84,7 @@ exports.callback = function (req, res) {
                         var user_info = json2.parse(user_info_raw);
                         //到这里，就知道某个session_id对应的user_id，就要将该session_id加入到userPool中
                         //userPool.add(user_info.id, sessionId, 0);//这一步应该是可以去掉的 TODO
-                        connection.sendCrossSiteJson(_.map(connPool.getSessionConnections(sessionId), function (val, key) {
-                            return val;
-                        }), common.dummyMessage);
+                        connection.sendCrossSiteJson(connPool.getSessionConnections(sessionId), common.confirmIdentityMessage);
                         redis_client.set(redis_prefix + ':user_info_raw', user_info_raw);//保存某个session_id对应的user_info
                     } catch (ex) {
                         console.log(ex.toString());

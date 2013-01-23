@@ -32,6 +32,12 @@ UserPool.prototype.getUserConnectionPool = function (userId) {
     return this.users[userId];
 }
 
+UserPool.prototype.getUsersConnectionPool = function (userIdArray) {
+    _.reduce(userIdArray,function(memo,ele){
+        return memo.concat(this.users[ele])
+    })
+}
+
 /**
  * 将sessionId和connectionId对应的connection设置为某个用户id所有
  * 在establish connection的中间件中调用

@@ -17,6 +17,12 @@ var json2 = common.JSON;
 
 var redisClient = common.redisClient;
 
+/**
+ * 过滤掉没有必须参数的连接
+ * @param req
+ * @param res
+ * @param next
+ */
 exports.filterConnection = function (req, res, next) {
     var sessionId = req.cookies['npeasy.sid'];
     var connectionId = req.param('connectionId');
@@ -29,7 +35,7 @@ exports.filterConnection = function (req, res, next) {
             res.jsonpCallback({event:'noSessionId', data:{}})
         } else if (connectionId === undefined) {
             res.jsonpCallback({event:'noConnectionId', data:{}})
-        } else {
+        } else if (common.debug) {
             throw "This can never happen";
         }
     }
@@ -45,26 +51,41 @@ exports.filterConnection = function (req, res, next) {
  * @param res
  * @param next
  */
-exports.establishCometConnectionMiddleWare = function establishCometConnectionMiddleWare(req, res, next) {
-    var sessionId = req.sessionId;
-    var connectionId = req.connectionId;
-    //获知该连接所属的用户
-    redisClient.get('npeasy:cookie:' + sessionId + ':user_info_raw', function (err, user_info_raw) {
+exports.addConnectionToPool = function addConnectionToPool(req, res, next) {
+    //只有添加连接正确才进入下一步
+    if(connPool.add(new Connection(req, res, req.sessionId, req.connectionId))){
+        next();
+    }
+}
+
+/**
+ * 获取用户身份，如果已经有身份，则将连接加入用户连接池中
+ * @param req
+ * @param res
+ * @param next
+ */
+exports.addConnectionToUserPool = function (req, res, next) {
+    redisClient.get('npeasy:cookie:' + req.sessionId + ':user_info_raw', function (err, user_info_raw) {
         if (!err) {
             try {
                 var user_info = json2.parse(user_info_raw);
                 req.userId = user_info.id;
             } catch (ex) {
-                req.userId=undefined;
+                req.userId = undefined;
             }
         }
-        if (connPool.add(new Connection(req, res, sessionId, connectionId))) {
-            userPool.add(req.userId, sessionId, connectionId);//将该连接设置为某个用户所有
-            next();
-        }
+        userPool.add(req.userId, req.sessionId, req.connectionId);//将该连接设置为某个用户所有
+
+        next();
     });
 }
 
+/**
+ * 在建立连接时，第一步就为连接添加jsonpCallback的函数
+ * @param req
+ * @param res
+ * @param next
+ */
 exports.addJsonpCallbackFunction = function (req, res, next) {
     res.jsonpCallback = function (json) {
         try {
@@ -78,6 +99,16 @@ exports.addJsonpCallbackFunction = function (req, res, next) {
     next();
 }
 
-exports.checkSenderPermission=function(req,res,next){
-    next();
+/**
+ * 检验从用户服务器上传来的数据是否密码正确
+ * @param req
+ * @param res
+ * @param next
+ */
+exports.checkSenderPermission = function (req, res, next) {
+    if (req.param('postSecret') == common.postSecret) {
+        next();
+    } else {
+        res.send('post keyword is not right');
+    }
 }

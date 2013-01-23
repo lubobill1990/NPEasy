@@ -11,15 +11,15 @@ var app = express();
 var RedisStore = require('connect-redis')(express);
 var common = require('./common');
 var json2 = common.JSON;
-
+var sio = require('socket.io');
 var connection = require('./lib/Connection');
 var Connection = connection.Connection;
-var _=common._;
+var _ = common._;
 var midware = require('./middleware');
-
-var listenerRoutes=require('./routes/listener');
-var senderRoutes=require('./routes/sender');
-app.configure('all',function () {
+var redisStore = new RedisStore({prefix:'NPEASY_SESSID:'});
+var listenerRoutes = require('./routes/listener');
+var senderRoutes = require('./routes/sender');
+app.configure('all', function () {
     app.set('port', process.env.PORT || 3000);
     app.set('views', __dirname + '/views');
     app.set('view engine', 'jade');
@@ -31,7 +31,7 @@ app.configure('all',function () {
     app.use(express.session({
         key:'npeasy.sid',
         secret:"my secret",
-        store:new RedisStore({prefix:'NPEASY_SESSID:'})
+        store:redisStore
     }));
     app.use(midware.addJsonpCallbackFunction);
     app.use(express.session());
@@ -44,7 +44,7 @@ app.configure('development', function () {
 });
 
 app.get('/', routes.index);
-app.get('/test',midware.checkSenderPermission, routes.chat);
+app.get('/test', midware.checkSenderPermission, routes.chat);
 
 app.all('/user/id', function (req, res) {
     oauth.getUserId(req, res, function (uid) {
@@ -58,22 +58,65 @@ app.all('/oauth/confirm-identity', function (req, res) {
 app.all('/oauth/callback', function (req, res) {
     oauth.callback(req, res);
 })
-app.all('/listen', midware.filterConnection,midware.establishCometConnectionMiddleWare, listenerRoutes.listen);
+app.all('/listen',
+    midware.filterConnection, //过滤缺少参数的连接
+    midware.addConnectionToPool, //将连接放到连接池
+    midware.addConnectionToUserPool, //如果连接是属于某个用户的，则将该连接放入该用户的连接池
+    listenerRoutes.listen);
+
 /**
  * 当浏览器需要重建连接
  */
-app.all('/refreshConnection',midware.filterConnection,listenerRoutes.refreshConnection);
+app.all('/refreshConnection', midware.filterConnection, listenerRoutes.refreshConnection);
 
-app.all('/subscribe',midware.filterConnection,listenerRoutes.subscribe);
+app.all('/subscribe', midware.filterConnection, listenerRoutes.subscribe);
 
-app.all('/unsubscribe',midware.filterConnection,listenerRoutes.unsubscribe);
+app.all('/unsubscribe', midware.filterConnection, listenerRoutes.unsubscribe);
 
-app.all('/userList',midware.filterConnection,listenerRoutes.getUserList);
+app.all('/userList', midware.filterConnection, listenerRoutes.getUserList);
 
-app.all('/broadcast', midware.checkSenderPermission,senderRoutes.broadcast);
+app.all('/broadcast', midware.checkSenderPermission, senderRoutes.broadcast);
 
-app.all('/chat', midware.checkSenderPermission,senderRoutes.chat);
+app.all('/chat', midware.checkSenderPermission, senderRoutes.chat);
 
-http.createServer(app).listen(app.get('port'), function () {
+app.all('/remind', midware.checkSenderPermission, senderRoutes.remind);
+
+app.all('/notice', midware.checkSenderPermission, senderRoutes.notice);
+
+server = http.createServer(app).listen(app.get('port'), function () {
     console.log("Express server listening on port " + app.get('port'));
 });
+//
+//parseCookie = require('./node_modules/express/node_modules/connect').utils.parseCookie;
+//
+//var io = sio.listen(server);
+////io.set('authorization', function (handshakeData, callback) {
+////    // 通过客户端的cookie字符串来获取其session数据
+////    handshakeData.cookie = parseCookie(handshakeData.headers.cookie)
+////    var connect_sid = handshakeData.cookie['npeasy.sid'];
+////
+////    if (connect_sid) {
+////        redisStore.get(connect_sid, function (error, session) {
+////            if (error) {
+////                // if we cannot grab a session, turn down the connection
+////                callback(error.message, false);
+////            }
+////            else {
+////                // save the session data and accept the connection
+////                handshakeData.session = session;
+////                callback(null, true);
+////            }
+////        });
+////    }
+////    else {
+////        callback('nosession');
+////    }
+////});
+//io.sockets.on('connection', function (socket) {
+//    setInterval(function () {
+//        socket.emit('news', { hello:'world' });
+//    }, 3000)
+//    socket.on('listen', function (data) {
+//        console.log(data);
+//    });
+//});

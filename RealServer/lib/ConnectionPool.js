@@ -142,8 +142,9 @@ ConnectionPool.prototype.getSessionConnections = function (sessionId) {
 
 /**
  * 向连接池添加连接
+ * 如果对象不是Connection类，则抛出异常 //TODO 其实去掉也没事，这个函数是给内部调用的，所以一般不会出这种错误
  * 如果不存在该connectionId的连接，则添加，并且返回true
- * 如果已经存在该connectionId的活动连接，则抛出异常
+ * 如果已经存在该connectionId的活动连接，则覆盖，并给上一个连接返回"connectionExists"数据
  * 如果该连接是一个僵尸连接，并且其临时数据区存在数据，则将数据返回，设置新的timestamp，并且返回false
  * 如果该连接是一个僵尸连接，并且其临时数据区不存在数据，则设置新的变量，并且返回true
  * @param conn
@@ -158,8 +159,7 @@ ConnectionPool.prototype.add = function (conn) {
             this.setConnection(conn);
             return true;
         } else {//如果conn存在
-            if (oldConn.alive) {//并且还活着，这不是正常的事情，所以抛出异常
-                //throw new ConnectionException();
+            if (oldConn.alive) {
                 //如果还活着，说明前一个还没结束或者前一个意外退出，则将前一个连接覆盖掉
                 oldConn.sendCrossSiteJson(common.connectionExistMessage);
                 oldConn.copy(conn);

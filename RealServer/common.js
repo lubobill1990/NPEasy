@@ -59,6 +59,11 @@ exports.connectionExistMessage={event:'connectionExists',data:{}}
 
 exports.refreshConnectionMessage={event:'refreshConnection',data:{}}
 
+exports.identityConfirmedMessage={event:'identityConfirmed',data:{}}
+
+exports.confirmIdentityMessage={event:'confirmIdentity',data:{}}
+
+exports.debug=true;
 var redis = require('redis'),
     redisClient = redis.createClient();
 
